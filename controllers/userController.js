@@ -105,7 +105,7 @@ exports.forgotPassword = async (req, res) => {
       to: email,
       subject: 'Password Reset Request',
       text: `You requested a password reset. Click the link below to reset your password:\n\n` +
-            `http://localhost:5173/reset-password/${token}\n\n` +
+            `https://admin-manage.netlify.app//reset-password/${token}\n\n` +
             `If you did not request this, please ignore this email.`,
     };
 
