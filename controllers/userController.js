@@ -77,18 +77,45 @@ exports.signin = async (req, res) => {
 exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
-    const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: 'User not found' });
 
+    // Check if user exists
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Generate reset token and expiration
     const token = crypto.randomBytes(20).toString('hex');
     user.resetPasswordToken = token;
-    user.resetPasswordExpires = Date.now() + 3600000;
+    user.resetPasswordExpires = Date.now() + 3600000; // Token valid for 1 hour
     await user.save();
 
-    const mailOptions = { from: process.env.EMAIL_USER, to: email, subject: 'Password Reset', text: `Reset link: https://admin-manage.netlify.app/reset-password/${token}` };
-    transporter.sendMail(mailOptions);
-    res.json({ message: 'Password reset email sent' });
-  } catch (error) { res.status(500).json({ message: 'Server error' }); }
+    // Nodemailer transporter
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS, // Use App Password for Gmail
+      },
+    });
+
+    // Email options
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: 'Password Reset Request',
+      text: `You requested a password reset. Click the link below to reset your password:\n\n` +
+            `http://localhost:5173/reset-password/${token}\n\n` +
+            `If you did not request this, please ignore this email.`,
+    };
+
+    // Send email
+    await transporter.sendMail(mailOptions);
+    res.json({ message: 'Password reset email sent successfully' });
+  } catch (error) {
+    console.error('Error in forgotPassword:', error);
+    res.status(500).json({ message: 'Server error. Please try again later.' });
+  }
 };
 
 exports.verifyResetToken = async (req, res) => {
