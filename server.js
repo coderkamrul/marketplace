@@ -70,6 +70,41 @@ io.on('connection', (socket) => {
       socket.emit('error', { message: 'Failed to send message' });
     }
   });
+  socket.on('delete message', async (data) => {
+    try {
+      const { messageId, conversationId } = data;
+  
+      // Delete message from database through the API
+      const response = await fetch(`${process.env.API_URL}/api/messages/${messageId}`, {
+        method: 'DELETE',
+      });
+  
+  
+      if (!response.ok) {
+        throw new Error('Failed to delete message');
+      }
+  
+      // Broadcast the message deletion to all clients in the conversation
+      io.to(conversationId).emit('delete message', { messageId });
+  
+      // Update last message in conversation (if applicable)
+      const messagesResponse = await fetch(`${process.env.API_URL}/api/messages?conversationId=${conversationId}`);
+
+      // Update last message in conversation
+      const lastMessage = messagesResponse.length > 0 ? messagesResponse[messagesResponse.length - 1]._id : null;
+      await fetch(`${process.env.API_URL}/api/conversations/${conversationId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ lastMessage: lastMessage })
+      });
+  
+    } catch (error) {
+      console.error('Error handling message deletion:', error);
+      socket.emit('error', { message: 'Failed to delete message' });
+    }
+  });
 
   socket.on('delete message', async (data) => {
     try {
