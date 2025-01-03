@@ -99,4 +99,25 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+router.delete('/user/:conversationId', async (req, res) => {
+  try {
+      const { conversationId } = req.params;
+
+      if (!conversationId) {
+          return res.status(400).json({ error: 'Conversation ID is required' });
+      }
+
+      const deletedConversation = await Conversation.findByIdAndDelete(conversationId);
+
+      if (!deletedConversation) {
+          return res.status(404).json({ error: 'Conversation not found' });
+      }
+
+      res.status(200).json({ message: 'Conversation deleted successfully' });
+  } catch (error) {
+      console.error('Error deleting conversation:', error.message);
+      res.status(500).json({ error: 'Failed to delete conversation' });
+  }
+});
+
 module.exports = router;
